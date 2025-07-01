@@ -1,6 +1,7 @@
-export default function Button() {
-  const onClick = () => {
-    console.log('Button clicked');
-  };
+interface ButtonProps {
+  onClick: () => void;
+}
+
+export default function Button({ onClick }: ButtonProps) {
   return <button onClick={onClick}>Button</button>;
 }

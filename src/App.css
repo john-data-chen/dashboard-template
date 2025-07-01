@@ -20,6 +20,10 @@ body {
   font-weight: 700;
 }
 
+.content p {
+  font-size: 5rem;
+}
+
 .content button {
   width: 10rem;
   height: 3rem;
