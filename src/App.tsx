@@ -1,5 +1,5 @@
 import './global.css';
-import { TITLE } from '@/constants/texts';
+import { TITLE } from '@/constants/appTexts';
 import { DataFetchingDemo } from './components/DataFetchingDemo';
 
 const App = () => {
