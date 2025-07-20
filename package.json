@@ -9,7 +9,8 @@
     "format": "prettier --write .",
     "lint": "oxlint . --fix",
     "preview": "rsbuild preview",
-    "prepare": "if [ \"$NODE_ENV\" != \"production\" ]; then husky; fi"
+    "prepare": "if [ \"$NODE_ENV\" != \"production\" ]; then husky; fi",
+    "mock-api": "npx json-server mock-api.json -p 3001"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": "oxlint --fix",
@@ -38,6 +39,7 @@
     "@types/react-dom": "^19.1.6",
     "globals": "^16.3.0",
     "husky": "^9.1.7",
+    "json-server": "1.0.0-beta.3",
     "lint-staged": "^16.1.2",
     "oxlint": "^1.7.0",
     "prettier": "^3.6.2",
