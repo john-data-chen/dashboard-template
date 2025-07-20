@@ -57,14 +57,18 @@ export const CACHE_MESSAGES = {
 
 // Button labels
 export const BUTTON_LABELS = {
-  FORCE_REFRESH: 'Force Refresh'
+  FORCE_REFRESH: 'Force Refresh',
+  REFRESH: 'Refresh',
+  REFRESHING: 'Refreshing...',
+  MANUAL_REFRESH: 'Load New Data',
+  MANUAL_REFRESHING: 'Loading...'
 } as const;
 
 // Default behavior
 export const DEFAULT_BEHAVIOR = 'loading-then-data' as const;
 
 // Network simulation
-export const NETWORK_DELAY = 1500;
+export const MIN_LOADING_DELAY = 3000; // 3 seconds minimum loading time
 
 // Type exports
 export type Todo = {

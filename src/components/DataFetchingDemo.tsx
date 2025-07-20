@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { useState, useEffect } from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import {
   Card,
   CardContent,
@@ -9,7 +9,9 @@ import {
 } from './ui/card';
 import { Button } from './ui/button';
 import { Skeleton } from './ui/skeleton';
+import { RefreshCw } from 'lucide-react';
 import { DataFetcher } from './DataFetcher';
+import type { DataFetcherBehavior } from '@/constants/dataFetcher';
 import {
   QUERY_KEYS,
   TABS,
@@ -22,14 +24,36 @@ import {
 import { MOCK_API_URL } from '@/constants/mockApi';
 
 // Fetch todos from the mock API
-const fetchTodos = async (): Promise<FetchTodosResponse> => {
+const fetchTodos = async (context?: {
+  queryKey?: any[];
+}): Promise<FetchTodosResponse> => {
+  // Check if this is the loading-then-data tab by checking the query key
+  const isDelayedTab = context?.queryKey?.some(
+    (key) =>
+      key === QUERY_KEYS.LOADING_THEN_DATA ||
+      (Array.isArray(key) && key.includes(QUERY_KEYS.LOADING_THEN_DATA))
+  );
+
+  const startTime = Date.now();
+
   const response = await fetch(MOCK_API_URL);
   if (!response.ok) {
     throw new Error(ERROR_MESSAGES.DEFAULT);
   }
+
   const data = await response.json();
-  // Convert array response to { todos: [...] } format expected by our components
-  return { todos: Array.isArray(data) ? data : data.todos || [] };
+  const result = { todos: Array.isArray(data) ? data : data.todos || [] };
+
+  // For the loading-then-data tab, ensure loading state is shown for at least 3 seconds
+  if (isDelayedTab) {
+    const elapsed = Date.now() - startTime;
+    const remainingTime = Math.max(0, 3000 - elapsed);
+    if (remainingTime > 0) {
+      await new Promise((resolve) => setTimeout(resolve, remainingTime));
+    }
+  }
+
+  return result;
 };
 
 // Loading component
@@ -85,161 +109,138 @@ const TodoList = ({ todos }: { todos: FetchTodosResponse['todos'] }) => {
 
 export const DataFetchingDemo = () => {
   const [forceRefresh, setForceRefresh] = useState(0);
+  const [activeTab, setActiveTab] =
+    useState<DataFetcherBehavior>('always-loading');
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [refreshKey]);
+
+  // Auto-refresh when switching to the loading-then-data tab
+  useEffect(() => {
+    if (activeTab === 'loading-then-data') {
+      setRefreshKey((prev) => prev + 1);
+    }
+  }, [activeTab]);
 
   return (
-    <Tabs defaultValue={TABS.ALWAYS_LOADING.value} className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
-        {Object.values(TABS).map((tab) => (
-          <TabsTrigger key={tab.value} value={tab.value}>
-            {tab.title}
-          </TabsTrigger>
-        ))}
-      </TabsList>
+    <div className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as DataFetcherBehavior)}
+        className="w-full"
+      >
+        <TabsList className="grid w-full grid-cols-4">
+          {Object.values(TABS).map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>
+              {tab.title}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-      {Object.entries({
-        [TABS.ALWAYS_LOADING.value]: {
-          queryKey: QUERY_KEYS.ALWAYS_LOADING,
-          behavior: 'always-loading' as const,
-          showForceRefresh: false
-        },
-        [TABS.LOADING_THEN_DATA.value]: {
-          queryKey: QUERY_KEYS.LOADING_THEN_DATA,
-          behavior: 'loading-then-data' as const,
-          showForceRefresh: false
-        },
-        [TABS.CACHE_AND_UPDATE.value]: {
-          queryKey: [QUERY_KEYS.CACHE_AND_UPDATE, forceRefresh],
-          behavior: 'cache-and-update' as const,
-          showForceRefresh: true
-        },
-        [TABS.CACHE_ONLY.value]: {
-          queryKey: QUERY_KEYS.CACHE_ONLY,
-          behavior: 'cache-only' as const,
-          showForceRefresh: false
-        }
-      }).map(([tabValue, config]) => (
-        <TabsContent key={tabValue} value={tabValue}>
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>
-                    {
-                      TABS[
-                        tabValue
-                          .toUpperCase()
-                          .replace(/-/g, '_') as keyof typeof TABS
-                      ].title
-                    }
-                  </CardTitle>
-                  <CardDescription>
-                    {
-                      TABS[
-                        tabValue
-                          .toUpperCase()
-                          .replace(/-/g, '_') as keyof typeof TABS
-                      ].description
-                    }
-                  </CardDescription>
+        {Object.entries({
+          [TABS.ALWAYS_LOADING.value]: {
+            queryKey: QUERY_KEYS.ALWAYS_LOADING,
+            behavior: 'always-loading' as const,
+            showForceRefresh: false,
+            title: 'Always Loading',
+            description:
+              'Shows loading state indefinitely using a never-resolving promise'
+          },
+          [TABS.LOADING_THEN_DATA.value]: {
+            queryKey: [QUERY_KEYS.LOADING_THEN_DATA, refreshKey],
+            behavior: 'loading-then-data' as const,
+            showForceRefresh: true,
+            title: 'Loading → Data',
+            description: 'Shows loading state, then data after a delay'
+          },
+          [TABS.CACHE_AND_UPDATE.value]: {
+            queryKey: [QUERY_KEYS.CACHE_AND_UPDATE, forceRefresh],
+            behavior: 'cache-and-update' as const,
+            showForceRefresh: true,
+            title: 'Cache + Update',
+            description:
+              'Shows cached data immediately, then updates in the background'
+          },
+          [TABS.CACHE_ONLY.value]: {
+            queryKey: QUERY_KEYS.CACHE_ONLY,
+            behavior: 'cache-only' as const,
+            showForceRefresh: false,
+            title: 'Cache Only',
+            description: 'Shows only cached data, makes no network requests'
+          }
+        }).map(([tabValue, config]) => (
+          <TabsContent key={tabValue} value={tabValue}>
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>{config.title}</CardTitle>
+                    <CardDescription>{config.description}</CardDescription>
+                  </div>
+                  <div>
+                    {tabValue === TABS.LOADING_THEN_DATA.value && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setIsLoading(true);
+                          setRefreshKey((prev) => prev + 1);
+                        }}
+                        disabled={isLoading}
+                        className="flex items-center gap-2"
+                      >
+                        <RefreshCw
+                          className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+                        />
+                        {isLoading
+                          ? BUTTON_LABELS.MANUAL_REFRESHING
+                          : BUTTON_LABELS.MANUAL_REFRESH}
+                      </Button>
+                    )}
+                    {config.showForceRefresh &&
+                      tabValue !== TABS.LOADING_THEN_DATA.value && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setForceRefresh((prev) => prev + 1)}
+                        >
+                          {BUTTON_LABELS.FORCE_REFRESH}
+                        </Button>
+                      )}
+                  </div>
                 </div>
-                {config.showForceRefresh && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setForceRefresh((prev) => prev + 1)}
-                  >
-                    {BUTTON_LABELS.FORCE_REFRESH}
-                  </Button>
+              </CardHeader>
+              <CardContent>
+                <DataFetcher
+                  queryKey={config.queryKey}
+                  queryFn={fetchTodos}
+                  behavior={config.behavior}
+                  renderLoading={
+                    tabValue === TABS.CACHE_ONLY.value
+                      ? () => <div>{ERROR_MESSAGES.NO_CACHED_DATA}</div>
+                      : LoadingState
+                  }
+                  renderError={ErrorState}
+                  renderSuccess={TodoList}
+                />
+                {tabValue === TABS.CACHE_ONLY.value && (
+                  <div className="mt-4 text-sm text-muted-foreground">
+                    <p>{CACHE_MESSAGES.CACHE_ONLY_NOTE}</p>
+                    <p>{CACHE_MESSAGES.CACHE_ONLY_INSTRUCTION}</p>
+                  </div>
                 )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <DataFetcher
-                queryKey={config.queryKey}
-                queryFn={fetchTodos}
-                behavior={config.behavior}
-                renderLoading={
-                  tabValue === TABS.CACHE_ONLY.value
-                    ? () => <div>{ERROR_MESSAGES.NO_CACHED_DATA}</div>
-                    : LoadingState
-                }
-                renderError={ErrorState}
-                renderSuccess={TodoList}
-              />
-              {tabValue === TABS.CACHE_ONLY.value && (
-                <div className="mt-4 text-sm text-muted-foreground">
-                  <p>{CACHE_MESSAGES.CACHE_ONLY_NOTE}</p>
-                  <p>{CACHE_MESSAGES.CACHE_ONLY_INSTRUCTION}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      ))}
-
-      <TabsContent value="cache-and-update">
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle>Cache + Update</CardTitle>
-                <CardDescription>
-                  Shows cached data immediately, then updates in the background
-                </CardDescription>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setForceRefresh((prev) => prev + 1)}
-              >
-                Force Refresh
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <DataFetcher
-              queryKey={['cache-and-update-demo', forceRefresh]}
-              queryFn={fetchTodos}
-              behavior="cache-and-update"
-              renderLoading={LoadingState}
-              renderError={ErrorState}
-              renderSuccess={TodoList}
-            />
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="cache-only">
-        <Card>
-          <CardHeader>
-            <CardTitle>Cache Only</CardTitle>
-            <CardDescription>
-              Shows only cached data, makes no network requests
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataFetcher
-              queryKey="cache-only-demo"
-              queryFn={fetchTodos}
-              behavior="cache-only"
-              renderLoading={() => <div>No cached data available</div>}
-              renderError={ErrorState}
-              renderSuccess={TodoList}
-            />
-            <div className="mt-4 text-sm text-muted-foreground">
-              <p>
-                Note: This will only show data if it was previously loaded in
-                another tab.
-              </p>
-              <p>
-                Try loading the "Cache + Update" tab first, then switch to this
-                tab.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ))}
+      </Tabs>
+    </div>
   );
 };
 
