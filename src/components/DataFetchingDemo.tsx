@@ -38,25 +38,31 @@ const fetchTodos = async (context?: {
   );
 
   const startTime = Date.now();
+  let response;
 
-  const response = await fetch(MOCK_API_URL);
-  if (!response.ok) {
-    throw new Error(ERROR_MESSAGES.DEFAULT);
-  }
-
-  const data = await response.json();
-  const result = { todos: Array.isArray(data) ? data : data.todos || [] };
-
-  // For the loading-then-data tab, ensure loading state is shown for at least 3 seconds
-  if (isDelayedTab) {
-    const elapsed = Date.now() - startTime;
-    const remainingTime = Math.max(0, 3000 - elapsed);
-    if (remainingTime > 0) {
-      await new Promise((resolve) => setTimeout(resolve, remainingTime));
+  try {
+    response = await fetch(MOCK_API_URL);
+    if (!response.ok) {
+      throw new Error(ERROR_MESSAGES.DEFAULT);
     }
-  }
 
-  return result;
+    const data = await response.json();
+    const todos = Array.isArray(data) ? data : data.todos || [];
+
+    // For the loading-then-data tab, ensure loading state is shown for at least 3 seconds
+    if (isDelayedTab) {
+      const elapsed = Date.now() - startTime;
+      const remainingTime = Math.max(0, 3000 - elapsed);
+      if (remainingTime > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remainingTime));
+      }
+    }
+
+    return { todos };
+  } catch (error) {
+    console.error('Error fetching todos:', error);
+    throw error;
+  }
 };
 
 // Loading component
@@ -117,19 +123,15 @@ export const DataFetchingDemo = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [refreshKey]);
-
   // Auto-refresh when switching to the loading-then-data tab
   useEffect(() => {
     if (activeTab === 'loading-then-data') {
       setRefreshKey((prev) => prev + 1);
     }
   }, [activeTab]);
+
+  // Track the currently refreshing tab
+  const [refreshingTab, setRefreshingTab] = useState<string | null>(null);
 
   return (
     <div className="w-full">
@@ -151,29 +153,31 @@ export const DataFetchingDemo = () => {
             queryKey: QUERY_KEYS.ALWAYS_LOADING,
             behavior: 'always-loading' as const,
             showForceRefresh: false,
-            title: TABS.ALWAYS_LOADING.title,
-            description: TABS.ALWAYS_LOADING.description
+            title: 'Always Loading',
+            description:
+              'Shows loading state indefinitely using a never-resolving promise'
           },
           [TABS.LOADING_THEN_DATA.value]: {
             queryKey: [QUERY_KEYS.LOADING_THEN_DATA, refreshKey],
             behavior: 'loading-then-data' as const,
             showForceRefresh: true,
-            title: TABS.LOADING_THEN_DATA.title,
-            description: TABS.LOADING_THEN_DATA.description
+            title: 'Loading → Data',
+            description: 'Shows loading state, then data after a delay'
           },
           [TABS.CACHE_AND_UPDATE.value]: {
             queryKey: [QUERY_KEYS.CACHE_AND_UPDATE, forceRefresh],
             behavior: 'cache-and-update' as const,
             showForceRefresh: true,
-            title: TABS.CACHE_AND_UPDATE.title,
-            description: TABS.CACHE_AND_UPDATE.description
+            title: 'Cache + Update',
+            description:
+              'Shows cached data immediately, then updates in the background'
           },
           [TABS.CACHE_ONLY.value]: {
             queryKey: QUERY_KEYS.CACHE_ONLY,
             behavior: 'cache-only' as const,
             showForceRefresh: false,
-            title: TABS.CACHE_ONLY.title,
-            description: TABS.CACHE_ONLY.description
+            title: 'Cache Only',
+            description: 'Shows only cached data, makes no network requests'
           }
         }).map(([tabValue, config]) => (
           <TabsContent key={tabValue} value={tabValue}>
@@ -209,9 +213,18 @@ export const DataFetchingDemo = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setForceRefresh((prev) => prev + 1)}
+                          onClick={() => {
+                            setRefreshingTab(tabValue);
+                            setForceRefresh((prev) => prev + 1);
+                          }}
+                          disabled={refreshingTab === tabValue}
                         >
-                          {BUTTON_LABELS.FORCE_REFRESH}
+                          <RefreshCw
+                            className={`mr-2 h-4 w-4 ${refreshingTab === tabValue ? 'animate-spin' : ''}`}
+                          />
+                          {refreshingTab === tabValue
+                            ? BUTTON_LABELS.MANUAL_REFRESHING
+                            : BUTTON_LABELS.FORCE_REFRESH}
                         </Button>
                       )}
                   </div>
@@ -227,8 +240,20 @@ export const DataFetchingDemo = () => {
                       ? () => <div>{ERROR_MESSAGES.NO_CACHED_DATA}</div>
                       : LoadingState
                   }
-                  renderError={ErrorState}
-                  renderSuccess={TodoList}
+                  renderSuccess={(data) => {
+                    // Reset refreshing state when data is loaded
+                    if (refreshingTab === tabValue) {
+                      setRefreshingTab(null);
+                    }
+                    return <TodoList todos={data.todos} />;
+                  }}
+                  renderError={(error) => {
+                    // Reset refreshing state on error
+                    if (refreshingTab === tabValue) {
+                      setRefreshingTab(null);
+                    }
+                    return <ErrorState error={error} />;
+                  }}
                 />
                 {tabValue === TABS.CACHE_ONLY.value && (
                   <div className="mt-4 text-sm text-muted-foreground">

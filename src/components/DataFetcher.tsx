@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
-import { Card, CardContent } from './ui/card';
 import type { DataFetcherProps } from '@/types/dataFetcher';
-import { CACHE_MESSAGES, DEFAULT_BEHAVIOR } from '@/constants/dataFetcher';
+import { DEFAULT_BEHAVIOR, MOCK_CACHE_DATA } from '@/constants/dataFetcher';
 
 export function DataFetcher<TData, TError = Error>({
   queryKey,
@@ -22,13 +21,24 @@ export function DataFetcher<TData, TError = Error>({
     // For 'always-loading', use a never-resolving promise
     queryFn: isLoadingIndefinitely
       ? (): Promise<never> => new Promise(() => {})
-      : queryFn,
+      : isCacheAndUpdate
+        ? async () => {
+            // Then fetch fresh data after a delay
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+            return queryFn();
+          }
+        : queryFn,
     // For 'cache-and-update', enable background refetching
     refetchOnMount: isCacheAndUpdate,
     refetchOnWindowFocus: !isCacheOnly,
     refetchOnReconnect: !isCacheOnly,
     // For 'cache-and-update', show stale data while refetching
-    keepPreviousData: isCacheAndUpdate
+    keepPreviousData: isCacheAndUpdate,
+    // Return initial data immediately for cache-and-update
+    ...(isCacheAndUpdate && {
+      initialData: MOCK_CACHE_DATA as TData,
+      staleTime: 0 // Make sure we always refetch
+    })
   };
 
   const {
@@ -40,7 +50,7 @@ export function DataFetcher<TData, TError = Error>({
   }: UseQueryResult<TData, TError> = useQuery({
     queryKey: Array.isArray(queryKey) ? queryKey : [queryKey],
     ...queryOptions
-  } as const);
+  });
 
   // Handle loading states
   if (isLoadingIndefinitely || (isLoading && !isCacheAndUpdate)) {
@@ -56,13 +66,7 @@ export function DataFetcher<TData, TError = Error>({
   if (data !== undefined) {
     return (
       <div className="space-y-4">
-        {behavior === 'cache-and-update' && isFetching && (
-          <Card className="mb-4">
-            <CardContent className="p-4 text-sm text-muted-foreground">
-              {CACHE_MESSAGES.UPDATING}
-            </CardContent>
-          </Card>
-        )}
+        {behavior === 'cache-and-update' && isFetching}
         {renderSuccess(data)}
       </div>
     );
