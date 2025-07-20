@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 // Query keys
 export const QUERY_KEYS = {
   ALWAYS_LOADING: 'always-loading-demo',
@@ -69,34 +67,3 @@ export const DEFAULT_BEHAVIOR = 'loading-then-data' as const;
 
 // Network simulation
 export const MIN_LOADING_DELAY = 3000; // 3 seconds minimum loading time
-
-// Type exports
-export type Todo = {
-  id: number;
-  title: string;
-  completed: boolean;
-};
-
-export type TodoListProps = {
-  todos: Todo[];
-};
-
-export type FetchTodosResponse = {
-  todos: Todo[];
-};
-
-export type DataFetcherBehavior =
-  | 'always-loading'
-  | 'loading-then-data'
-  | 'cache-and-update'
-  | 'cache-only';
-
-// Component props
-export type DataFetcherProps<TData, TError = Error> = {
-  queryKey: string | unknown[];
-  queryFn: () => Promise<TData>;
-  renderLoading: () => ReactNode;
-  renderSuccess: (data: TData) => ReactNode;
-  renderError: (error: TError) => ReactNode;
-  behavior?: DataFetcherBehavior;
-};

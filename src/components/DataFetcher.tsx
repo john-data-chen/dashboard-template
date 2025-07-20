@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { Card, CardContent } from './ui/card';
-import type { DataFetcherProps } from '@/constants/dataFetcher';
+import type { DataFetcherProps } from '@/types/dataFetcher';
 import { CACHE_MESSAGES, DEFAULT_BEHAVIOR } from '@/constants/dataFetcher';
 
 export function DataFetcher<TData, TError = Error>({

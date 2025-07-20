@@ -11,15 +11,17 @@ import { Button } from './ui/button';
 import { Skeleton } from './ui/skeleton';
 import { RefreshCw } from 'lucide-react';
 import { DataFetcher } from './DataFetcher';
-import type { DataFetcherBehavior } from '@/constants/dataFetcher';
+import type {
+  DataFetcherBehavior,
+  FetchTodosResponse
+} from '@/types/dataFetcher';
 import {
   QUERY_KEYS,
   TABS,
   LOADING_STATE,
   ERROR_MESSAGES,
   CACHE_MESSAGES,
-  BUTTON_LABELS,
-  type FetchTodosResponse
+  BUTTON_LABELS
 } from '@/constants/dataFetcher';
 import { MOCK_API_URL } from '@/constants/mockApi';
 
