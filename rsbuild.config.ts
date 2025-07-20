@@ -4,6 +4,6 @@ import { pluginReact } from '@rsbuild/plugin-react';
 export default defineConfig({
   plugins: [pluginReact()],
   performance: {
-    removeConsole: true,
-  },
+    removeConsole: false
+  }
 });

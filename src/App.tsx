@@ -1,20 +1,14 @@
-import './App.css';
-import Button from './components/Button';
-import Title from './components/Title';
-import { useState } from 'react';
+import './global.css';
+import { TITLE } from '@/constants/appTexts';
+import { DataFetchingDemo } from './components/DataFetchingDemo';
 
 const App = () => {
-  const [count, setCount] = useState(0);
-
-  const onClick = () => {
-    setCount(count + 1);
-  };
-
   return (
-    <div className="content">
-      <Title />
-      <p>{count}</p>
-      <Button onClick={onClick} />
+    <div className="container mx-auto p-4 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-6">{TITLE}</h1>
+      <div className="space-y-6">
+        <DataFetchingDemo />
+      </div>
     </div>
   );
 };
