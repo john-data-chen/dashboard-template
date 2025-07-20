@@ -8,10 +8,7 @@
   "tabWidth": 2,
   "endOfLine": "lf",
   "printWidth": 80,
-  "importOrder": [
-    "^@ui/(.*)$",
-    "^[./]"
-  ],
+  "importOrder": ["^@ui/(.*)$", "^[./]"],
   "importOrderSortSpecifiers": true,
   "importOrderCaseInsensitive": true,
   "plugins": [
