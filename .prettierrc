@@ -11,8 +11,23 @@
   "importOrder": ["^@ui/(.*)$", "^[./]"],
   "importOrderSortSpecifiers": true,
   "importOrderCaseInsensitive": true,
+  "overrides": [
+    {
+      "files": ["*.{js,mjs,cjs,jsx}"],
+      "options": {
+        "parser": "oxc"
+      }
+    },
+    {
+      "files": ["*.{ts,mts,cts,tsx}"],
+      "options": {
+        "parser": "oxc-ts"
+      }
+    }
+  ],
   "plugins": [
     "prettier-plugin-tailwindcss",
-    "@trivago/prettier-plugin-sort-imports"
+    "@trivago/prettier-plugin-sort-imports",
+    "@prettier/plugin-oxc"
   ]
 }

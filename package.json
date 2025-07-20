@@ -29,6 +29,7 @@
     "tw-animate-css": "^1.3.5"
   },
   "devDependencies": {
+    "@prettier/plugin-oxc": "^0.0.4",
     "@rsbuild/core": "^1.4.8",
     "@rsbuild/plugin-react": "^1.3.4",
     "@tailwindcss/postcss": "^4.1.11",
