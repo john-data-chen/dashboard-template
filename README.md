@@ -1,31 +1,36 @@
 # Dashboard Template
 
-This is a demo project by newer and faster tools such as Rsbuild and oxlint.
+這是使用 Rsbuild 和 oxlint 的 demo 專案
 
-## Setup
+## Basic Features
 
-Install the dependencies:
+- API回應前顯示加載中
+- API成功回應後更新畫面
+- 使用之前緩存的資料顯示畫面，並同時重新拿取API回應，並在API回應後更新畫面
+- 使用之前緩存的資料顯示畫面，並不會重新拿取API回應
+
+## 🚀 Getting Started
+
+### Requirements
+
+- [Node.JS](https://nodejs.org/en/download/) v22.x, please use [NVM](https://github.com/nvm-sh/nvm) or [FNM](https://github.com/Schniz/fnm) to install
+- [PNPM](https://pnpm.io/) 10.x
+
+### Useful Commands
 
 ```bash
+# Install dependencies
 pnpm install
-```
 
-## Get started
-
-Start the dev server, and the app will be available at [http://localhost:3000](http://localhost:3000).
-
-```bash
+# Start development server
 pnpm dev
-```
 
-Build the app for production:
+# ESLint fix
+pnpm lint
 
-```bash
+# Format code
+pnpm format
+
+# Build
 pnpm build
-```
-
-Preview the production build locally:
-
-```bash
-pnpm preview
 ```
