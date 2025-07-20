@@ -67,3 +67,30 @@ export const DEFAULT_BEHAVIOR = 'loading-then-data' as const;
 
 // Network simulation
 export const MIN_LOADING_DELAY = 3000; // 3 seconds minimum loading time
+
+// Mock Cache Data
+export const MOCK_CACHE_DATA = {
+  todos: [
+    {
+      id: 1,
+      title: 'Cached Todo 1',
+      completed: false
+    },
+    {
+      id: 2,
+      title: 'Cached Todo 2',
+      completed: false
+    },
+    {
+      id: 3,
+      title: 'Cached Todo 3',
+      completed: false
+    }
+  ]
+};
+
+// Status of todos
+export const TODO_STATUS = {
+  TODO: 'Todo',
+  COMPLETED: 'Completed'
+} as const;

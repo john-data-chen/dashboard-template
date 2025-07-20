@@ -21,7 +21,8 @@ import {
   LOADING_STATE,
   ERROR_MESSAGES,
   CACHE_MESSAGES,
-  BUTTON_LABELS
+  BUTTON_LABELS,
+  TODO_STATUS
 } from '@/constants/dataFetcher';
 import { MOCK_API_URL } from '@/constants/mockApi';
 
@@ -101,7 +102,7 @@ const TodoList = ({ todos }: { todos: FetchTodosResponse['todos'] }) => {
             {todo.title}
           </span>
           <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
-            {todo.completed ? 'Done' : 'Pending'}
+            {todo.completed ? TODO_STATUS.COMPLETED : TODO_STATUS.TODO}
           </span>
         </div>
       ))}
@@ -150,31 +151,29 @@ export const DataFetchingDemo = () => {
             queryKey: QUERY_KEYS.ALWAYS_LOADING,
             behavior: 'always-loading' as const,
             showForceRefresh: false,
-            title: 'Always Loading',
-            description:
-              'Shows loading state indefinitely using a never-resolving promise'
+            title: TABS.ALWAYS_LOADING.title,
+            description: TABS.ALWAYS_LOADING.description
           },
           [TABS.LOADING_THEN_DATA.value]: {
             queryKey: [QUERY_KEYS.LOADING_THEN_DATA, refreshKey],
             behavior: 'loading-then-data' as const,
             showForceRefresh: true,
-            title: 'Loading → Data',
-            description: 'Shows loading state, then data after a delay'
+            title: TABS.LOADING_THEN_DATA.title,
+            description: TABS.LOADING_THEN_DATA.description
           },
           [TABS.CACHE_AND_UPDATE.value]: {
             queryKey: [QUERY_KEYS.CACHE_AND_UPDATE, forceRefresh],
             behavior: 'cache-and-update' as const,
             showForceRefresh: true,
-            title: 'Cache + Update',
-            description:
-              'Shows cached data immediately, then updates in the background'
+            title: TABS.CACHE_AND_UPDATE.title,
+            description: TABS.CACHE_AND_UPDATE.description
           },
           [TABS.CACHE_ONLY.value]: {
             queryKey: QUERY_KEYS.CACHE_ONLY,
             behavior: 'cache-only' as const,
             showForceRefresh: false,
-            title: 'Cache Only',
-            description: 'Shows only cached data, makes no network requests'
+            title: TABS.CACHE_ONLY.title,
+            description: TABS.CACHE_ONLY.description
           }
         }).map(([tabValue, config]) => (
           <TabsContent key={tabValue} value={tabValue}>
