@@ -1,27 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { Card, CardContent } from './ui/card';
-import type { ReactNode } from 'react';
-
-type DataFetcherProps<TData, TError = Error> = {
-  queryKey: string | unknown[];
-  queryFn: () => Promise<TData>;
-  renderLoading: () => ReactNode;
-  renderSuccess: (data: TData) => ReactNode;
-  renderError: (error: TError) => ReactNode;
-  /**
-   * Behavior options:
-   * - 'always-loading': Shows loading state indefinitely
-   * - 'loading-then-data': Shows loading, then data (default)
-   * - 'cache-and-update': Shows cached data immediately, then updates
-   * - 'cache-only': Shows only cached data, no network request
-   */
-  behavior?:
-    | 'always-loading'
-    | 'loading-then-data'
-    | 'cache-and-update'
-    | 'cache-only';
-};
+import type { DataFetcherProps } from '@/constants/dataFetcher';
+import { CACHE_MESSAGES, DEFAULT_BEHAVIOR } from '@/constants/dataFetcher';
 
 export function DataFetcher<TData, TError = Error>({
   queryKey,
@@ -29,20 +10,25 @@ export function DataFetcher<TData, TError = Error>({
   renderLoading,
   renderSuccess,
   renderError,
-  behavior = 'loading-then-data'
-}: DataFetcherProps<TData, TError>): ReactNode {
+  behavior = DEFAULT_BEHAVIOR
+}: DataFetcherProps<TData, TError>): ReturnType<
+  DataFetcherProps<TData, TError>['renderLoading']
+> {
+  const isCacheAndUpdate = behavior === 'cache-and-update';
+  const isCacheOnly = behavior === 'cache-only';
+  const isLoadingIndefinitely = behavior === 'always-loading';
+
   const queryOptions = {
     // For 'always-loading', use a never-resolving promise
-    queryFn:
-      behavior === 'always-loading'
-        ? (): Promise<never> => new Promise(() => {})
-        : queryFn,
+    queryFn: isLoadingIndefinitely
+      ? (): Promise<never> => new Promise(() => {})
+      : queryFn,
     // For 'cache-and-update', enable background refetching
-    refetchOnMount: behavior === 'cache-and-update',
-    refetchOnWindowFocus: behavior !== 'cache-only',
-    refetchOnReconnect: behavior !== 'cache-only',
+    refetchOnMount: isCacheAndUpdate,
+    refetchOnWindowFocus: !isCacheOnly,
+    refetchOnReconnect: !isCacheOnly,
     // For 'cache-and-update', show stale data while refetching
-    keepPreviousData: behavior === 'cache-and-update'
+    keepPreviousData: isCacheAndUpdate
   };
 
   const {
@@ -57,10 +43,7 @@ export function DataFetcher<TData, TError = Error>({
   } as const);
 
   // Handle loading states
-  if (
-    behavior === 'always-loading' ||
-    (isLoading && behavior !== 'cache-and-update')
-  ) {
+  if (isLoadingIndefinitely || (isLoading && !isCacheAndUpdate)) {
     return <>{renderLoading()}</>;
   }
 
@@ -76,7 +59,7 @@ export function DataFetcher<TData, TError = Error>({
         {behavior === 'cache-and-update' && isFetching && (
           <Card className="mb-4">
             <CardContent className="p-4 text-sm text-muted-foreground">
-              Updating data in the background...
+              {CACHE_MESSAGES.UPDATING}
             </CardContent>
           </Card>
         )}
