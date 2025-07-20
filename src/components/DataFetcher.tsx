@@ -1,75 +1,90 @@
 import { useQuery } from '@tanstack/react-query';
-import type { DataFetcherProps } from '@/types/data-fetcher';
-import { Loader2 } from 'lucide-react';
+import type { UseQueryResult } from '@tanstack/react-query';
+import { Card, CardContent } from './ui/card';
+import type { ReactNode } from 'react';
 
-const defaultLoading = () => (
-  <div className="flex items-center justify-center p-8">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    <span className="ml-2">Loading...</span>
-  </div>
-);
-
-const defaultError = (error: unknown) => {
-  const errorMessage =
-    error instanceof Error ? error.message : 'An unknown error occurred';
-  return (
-    <div className="rounded-md bg-destructive/10 p-4 text-destructive">
-      <p>Error: {errorMessage}</p>
-    </div>
-  );
+type DataFetcherProps<TData, TError = Error> = {
+  queryKey: string | unknown[];
+  queryFn: () => Promise<TData>;
+  renderLoading: () => ReactNode;
+  renderSuccess: (data: TData) => ReactNode;
+  renderError: (error: TError) => ReactNode;
+  /**
+   * Behavior options:
+   * - 'always-loading': Shows loading state indefinitely
+   * - 'loading-then-data': Shows loading, then data (default)
+   * - 'cache-and-update': Shows cached data immediately, then updates
+   * - 'cache-only': Shows only cached data, no network request
+   */
+  behavior?:
+    | 'always-loading'
+    | 'loading-then-data'
+    | 'cache-and-update'
+    | 'cache-only';
 };
 
 export function DataFetcher<TData, TError = Error>({
   queryKey,
   queryFn,
-  renderLoading = defaultLoading,
-  renderError = defaultError,
+  renderLoading,
   renderSuccess,
-  useCache = true,
-  refetchOnMount = true,
-  options = {}
-}: DataFetcherProps<TData, TError>) {
-  const query = useQuery<TData, TError>({
-    queryKey,
-    queryFn,
-    staleTime: useCache ? 5 * 60 * 1000 : 0, // 5 minutes cache
-    refetchOnWindowFocus: false,
-    refetchOnMount: refetchOnMount,
-    retry: 2,
-    ...options
-  });
+  renderError,
+  behavior = 'loading-then-data'
+}: DataFetcherProps<TData, TError>): ReactNode {
+  const queryOptions = {
+    // For 'always-loading', use a never-resolving promise
+    queryFn:
+      behavior === 'always-loading'
+        ? (): Promise<never> => new Promise(() => {})
+        : queryFn,
+    // For 'cache-and-update', enable background refetching
+    refetchOnMount: behavior === 'cache-and-update',
+    refetchOnWindowFocus: behavior !== 'cache-only',
+    refetchOnReconnect: behavior !== 'cache-only',
+    // For 'cache-and-update', show stale data while refetching
+    keepPreviousData: behavior === 'cache-and-update'
+  };
 
-  // Handle loading state
-  if (query.isPending) {
+  const {
+    data,
+    error,
+    isError,
+    isLoading,
+    isFetching
+  }: UseQueryResult<TData, TError> = useQuery({
+    queryKey: Array.isArray(queryKey) ? queryKey : [queryKey],
+    ...queryOptions
+  } as const);
+
+  // Handle loading states
+  if (
+    behavior === 'always-loading' ||
+    (isLoading && behavior !== 'cache-and-update')
+  ) {
     return <>{renderLoading()}</>;
   }
 
   // Handle error state
-  if (query.isError && query.error) {
-    return <>{renderError(query.error)}</>;
+  if (isError && error) {
+    return <>{renderError(error)}</>;
   }
 
   // Handle success state
-  if (query.data) {
-    return <>{renderSuccess(query.data)}</>;
+  if (data !== undefined) {
+    return (
+      <div className="space-y-4">
+        {behavior === 'cache-and-update' && isFetching && (
+          <Card className="mb-4">
+            <CardContent className="p-4 text-sm text-muted-foreground">
+              Updating data in the background...
+            </CardContent>
+          </Card>
+        )}
+        {renderSuccess(data)}
+      </div>
+    );
   }
 
-  // Fallback (should not reach here)
-  return null;
-}
-
-// Helper hook for common data fetching patterns
-export function useDataFetcher<TData, TError = Error>(
-  queryKey: string | unknown[],
-  queryFn: () => Promise<TData>,
-  options?: Omit<
-    DataFetcherProps<TData, TError>,
-    'queryKey' | 'queryFn' | 'renderSuccess'
-  >
-) {
-  return {
-    queryKey: Array.isArray(queryKey) ? queryKey : [queryKey],
-    queryFn,
-    ...options
-  };
+  // Fallback (shouldn't normally be reached)
+  return <>{renderLoading()}</>;
 }
