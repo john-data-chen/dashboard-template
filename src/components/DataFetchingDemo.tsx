@@ -32,10 +32,15 @@ const fetchTodos = async (): Promise<FetchTodosResponse> => {
 
 // Loading component
 const LoadingState = () => (
-  <div className="space-y-2">
-    {[...Array(LOADING_STATE.SKELETON_ITEMS)].map((_, i) => (
-      <Skeleton key={i} className={LOADING_STATE.SKELETON_CLASS} />
-    ))}
+  <div className="space-y-4">
+    <div className="animate-pulse text-center text-muted-foreground">
+      加載中...
+    </div>
+    <div className="space-y-2">
+      {[...Array(LOADING_STATE.SKELETON_ITEMS)].map((_, i) => (
+        <Skeleton key={i} className={LOADING_STATE.SKELETON_CLASS} />
+      ))}
+    </div>
   </div>
 );
 
