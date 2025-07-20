@@ -34,3 +34,20 @@ pnpm format
 # Build
 pnpm build
 ```
+
+### Project Structure
+
+```text
+.husky/ # Husky configuration
+src/
+├── components/ # Reusable React components
+│   └── ui/ # Shadcn UI components
+├── constants/ # Application-wide constants
+├── hooks/ # Custom React hooks
+├── lib/
+│   └── utils.ts # tailwindcss utils
+├── types/ # Type definitions
+├── App.tsx # Root component
+├── global.css # Global styles
+└── index.tsx # Entry point
+```
