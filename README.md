@@ -40,7 +40,7 @@ pnpm build
 ```text
 .husky/ # Husky configuration
 src/
-├── components/ # Reusable React components
+├── components/ # Reusable React components, DataFetcher.tsx 就是題目四要驗收的通用組件
 │   └── ui/ # Shadcn UI components
 ├── constants/ # Application-wide constants
 ├── hooks/ # Custom React hooks
