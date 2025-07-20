@@ -22,6 +22,9 @@
 # Install dependencies
 pnpm install
 
+# Start mock api server
+pnpm mock-api
+
 # Start development server
 pnpm dev
 
