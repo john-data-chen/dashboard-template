@@ -1,4 +1,6 @@
-# Rsbuild project
+# Dashboard Template
+
+This is a demo project by newer and faster tools such as Rsbuild and oxlint.
 
 ## Setup
 
@@ -27,10 +29,3 @@ Preview the production build locally:
 ```bash
 pnpm preview
 ```
-
-## Learn more
-
-To learn more about Rsbuild, check out the following resources:
-
-- [Rsbuild documentation](https://rsbuild.rs) - explore Rsbuild features and APIs.
-- [Rsbuild GitHub repository](https://github.com/web-infra-dev/rsbuild) - your feedback and contributions are welcome!
