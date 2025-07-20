@@ -27,7 +27,9 @@ const fetchTodos = async (): Promise<FetchTodosResponse> => {
   if (!response.ok) {
     throw new Error(ERROR_MESSAGES.DEFAULT);
   }
-  return await response.json();
+  const data = await response.json();
+  // Convert array response to { todos: [...] } format expected by our components
+  return { todos: Array.isArray(data) ? data : data.todos || [] };
 };
 
 // Loading component
