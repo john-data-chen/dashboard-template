@@ -27,4 +27,5 @@ export type DataFetcherProps<TData, TError = Error> = {
   renderSuccess: (data: TData) => ReactNode;
   renderError: (error: TError) => ReactNode;
   behavior?: DataFetcherBehavior;
+  initialData?: TData;
 };

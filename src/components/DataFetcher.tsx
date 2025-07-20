@@ -9,7 +9,8 @@ export function DataFetcher<TData, TError = Error>({
   renderLoading,
   renderSuccess,
   renderError,
-  behavior = DEFAULT_BEHAVIOR
+  behavior = DEFAULT_BEHAVIOR,
+  initialData
 }: DataFetcherProps<TData, TError>): ReturnType<
   DataFetcherProps<TData, TError>['renderLoading']
 > {
@@ -21,24 +22,31 @@ export function DataFetcher<TData, TError = Error>({
     // For 'always-loading', use a never-resolving promise
     queryFn: isLoadingIndefinitely
       ? (): Promise<never> => new Promise(() => {})
-      : isCacheAndUpdate
-        ? async () => {
-            // Then fetch fresh data after a delay
-            await new Promise((resolve) => setTimeout(resolve, 3000));
-            return queryFn();
-          }
-        : queryFn,
-    // For 'cache-and-update', enable background refetching
-    refetchOnMount: isCacheAndUpdate,
+      : isCacheOnly
+        ? () => Promise.resolve(MOCK_CACHE_DATA as TData)
+        : isCacheAndUpdate
+          ? async () => {
+              // Then fetch fresh data after a delay
+              await new Promise((resolve) => setTimeout(resolve, 3000));
+              return queryFn();
+            }
+          : queryFn,
+    // For 'cache-only', disable all refetching
+    refetchOnMount: isCacheOnly ? false : isCacheAndUpdate,
     refetchOnWindowFocus: !isCacheOnly,
     refetchOnReconnect: !isCacheOnly,
     // For 'cache-and-update', show stale data while refetching
     keepPreviousData: isCacheAndUpdate,
-    // Return initial data immediately for cache-and-update
-    ...(isCacheAndUpdate && {
-      initialData: MOCK_CACHE_DATA as TData,
-      staleTime: 0 // Make sure we always refetch
-    })
+    // Use provided initialData or fallback to MOCK_CACHE_DATA for cache-and-update
+    ...(initialData && {
+      initialData,
+      staleTime: isCacheOnly ? Infinity : 0
+    }),
+    ...(isCacheAndUpdate &&
+      !initialData && {
+        initialData: MOCK_CACHE_DATA as TData,
+        staleTime: 0 // Make sure we always refetch
+      })
   };
 
   const {
