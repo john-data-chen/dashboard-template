@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import {
   Card,
@@ -144,9 +144,6 @@ export const DataFetchingDemo = () => {
     }
   }, [activeTab]);
 
-  // Track the currently refreshing tab for force refresh
-  const [refreshingTab, setRefreshingTab] = useState<string | null>(null);
-
   // Handle manual refresh for loading-then-data tab
   const handleManualRefresh = () => {
     if (!isLoading) {
@@ -156,10 +153,17 @@ export const DataFetchingDemo = () => {
   };
 
   // Handle force refresh for other tabs
-  const handleForceRefresh = (tabValue: string) => {
-    setRefreshingTab(tabValue);
+  const handleForceRefresh = useCallback(() => {
     setForceRefresh((prev) => prev + 1);
-  };
+  }, []);
+
+  // Memoize the onFetchingChange callback to prevent infinite update loops
+  const handleFetchingChange = useCallback((isFetching: boolean) => {
+    setIsLoading(isFetching);
+    if (!isFetching) {
+      setLastRefreshTime(Date.now());
+    }
+  }, []);
 
   return (
     <div className="w-full">
@@ -196,7 +200,17 @@ export const DataFetchingDemo = () => {
             behavior: TABS.CACHE_AND_UPDATE.value,
             showForceRefresh: true,
             title: TABS.CACHE_AND_UPDATE.title,
-            description: TABS.CACHE_AND_UPDATE.description
+            description: TABS.CACHE_AND_UPDATE.description,
+            refetchOnMount: true,
+            refetchOnWindowFocus: true,
+            onFetchingChange: (isFetching: boolean) => {
+              if (isFetching) {
+                setIsLoading(true);
+              } else {
+                setIsLoading(false);
+                setLastRefreshTime(Date.now());
+              }
+            }
           },
           [TABS.CACHE_ONLY.value]: {
             queryKey: QUERY_KEYS.CACHE_ONLY,
@@ -265,6 +279,7 @@ export const DataFetchingDemo = () => {
                     </CardContent>
                   </Card>
                 )}
+                onFetchingChange={handleFetchingChange}
                 renderSuccess={(data) => (
                   <Card>
                     <CardHeader>
@@ -295,14 +310,14 @@ export const DataFetchingDemo = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleForceRefresh(tabValue)}
-                              disabled={refreshingTab === tabValue}
+                              onClick={handleForceRefresh}
+                              disabled={isLoading}
                               className="flex items-center gap-2"
                             >
                               <RefreshCw
-                                className={`h-4 w-4 ${refreshingTab === tabValue ? 'animate-spin' : ''}`}
+                                className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
                               />
-                              {refreshingTab === tabValue
+                              {isLoading
                                 ? BUTTON_LABELS.MANUAL_REFRESHING
                                 : BUTTON_LABELS.FORCE_REFRESH}
                             </Button>

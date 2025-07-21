@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { DataFetcherProps } from '@/types/dataFetcher';
@@ -10,7 +11,8 @@ export function DataFetcher<TData, TError = Error>({
   renderSuccess,
   renderError,
   behavior = DEFAULT_BEHAVIOR,
-  initialData
+  initialData,
+  onFetchingChange
 }: DataFetcherProps<TData, TError>): ReturnType<
   DataFetcherProps<TData, TError>['renderLoading']
 > {
@@ -73,6 +75,11 @@ export function DataFetcher<TData, TError = Error>({
     queryKey: Array.isArray(queryKey) ? queryKey : [queryKey],
     ...queryOptions
   });
+
+  // Call onFetchingChange when fetching state changes
+  useEffect(() => {
+    onFetchingChange?.(isFetching);
+  }, [isFetching, onFetchingChange]);
 
   // Handle loading states
   if (isLoadingIndefinitely || (isLoading && !isCacheAndUpdate)) {

@@ -22,7 +22,8 @@ export const TABS = {
   CACHE_AND_UPDATE: {
     value: 'cache-and-update',
     title: 'Cache + Update',
-    description: 'Shows cached data immediately, then updates in the background'
+    description:
+      'Shows cached data immediately, then updates data after queried'
   },
   CACHE_ONLY: {
     value: 'cache-only',
