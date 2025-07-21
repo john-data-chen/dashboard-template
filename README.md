@@ -1,13 +1,13 @@
 # Dashboard Template
 
-這是使用 Rsbuild 和 oxlint 的 demo 專案
+This is a demo project using Rsbuild and oxlint.
 
 ## Basic Features
 
-- API回應前顯示加載中
-- API成功回應後更新畫面
-- 使用之前緩存的資料顯示畫面，並同時重新拿取API回應，並在API回應後更新畫面
-- 使用之前緩存的資料顯示畫面，並不會重新拿取API回應
+- Display loading before API response
+- The API responds successfully and updates the screen
+- Use the previously cached data to display the screen, and re-get the API response, and update the screen after the API response
+- Use the previously cached data to display the screen and will not re-get the API response
 
 ## 🚀 Getting Started
 
@@ -43,14 +43,15 @@ pnpm build
 ```text
 .husky/ # Husky configuration
 src/
-├── components/ # Reusable React components, DataFetcher.tsx 就是題目四要驗收的通用組件
+├── components/ # Reusable React components, DataFetcher is the answer of Q4
 │   └── ui/ # Shadcn UI components
 ├── constants/ # Application-wide constants
-├── hooks/ # Custom React hooks
 ├── lib/
 │   └── utils.ts # tailwindcss utils
+├── providers/ # react query providers
 ├── types/ # Type definitions
 ├── App.tsx # Root component
 ├── global.css # Global styles
 └── index.tsx # Entry point
+mock-api.json # mock api by json-server
 ```
