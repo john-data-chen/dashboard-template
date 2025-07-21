@@ -152,28 +152,28 @@ export const DataFetchingDemo = () => {
         {Object.entries({
           [TABS.ALWAYS_LOADING.value]: {
             queryKey: QUERY_KEYS.ALWAYS_LOADING,
-            behavior: 'always-loading' as const,
+            behavior: TABS.ALWAYS_LOADING.value,
             showForceRefresh: false,
             title: TABS.ALWAYS_LOADING.title,
             description: TABS.ALWAYS_LOADING.description
           },
           [TABS.LOADING_THEN_DATA.value]: {
             queryKey: [QUERY_KEYS.LOADING_THEN_DATA, refreshKey],
-            behavior: 'loading-then-data' as const,
+            behavior: TABS.LOADING_THEN_DATA.value,
             showForceRefresh: true,
             title: TABS.LOADING_THEN_DATA.title,
             description: TABS.LOADING_THEN_DATA.description
           },
           [TABS.CACHE_AND_UPDATE.value]: {
             queryKey: [QUERY_KEYS.CACHE_AND_UPDATE, forceRefresh],
-            behavior: 'cache-and-update' as const,
+            behavior: TABS.CACHE_AND_UPDATE.value,
             showForceRefresh: true,
             title: TABS.CACHE_AND_UPDATE.title,
             description: TABS.CACHE_AND_UPDATE.description
           },
           [TABS.CACHE_ONLY.value]: {
             queryKey: QUERY_KEYS.CACHE_ONLY,
-            behavior: 'cache-only' as const,
+            behavior: TABS.CACHE_ONLY.value,
             showForceRefresh: false,
             title: TABS.CACHE_ONLY.title,
             description: TABS.CACHE_ONLY.description,
