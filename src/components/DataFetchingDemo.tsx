@@ -23,20 +23,23 @@ import {
   LOADING_STATE,
   ERROR_MESSAGES,
   CACHE_MESSAGES,
-  TODO_STATUS
-} from '../constants/dataFetcher';
-import { LOADING_DELAY } from '@/constants/dataFetcher';
+  TODO_STATUS,
+  LOADING_DELAY
+} from '@/constants/dataFetcher';
 import { MOCK_API_URL } from '@/constants/mockApi';
 
 // Fetch todos from the mock API
 export const fetchTodos = async (context?: {
   queryKey?: any[];
 }): Promise<FetchTodosResponse> => {
-  // Check if this is the loading-then-data tab by checking the query key
+  // Check if this is a tab that should show loading state first
   const isDelayedTab = context?.queryKey?.some(
     (key) =>
       key === QUERY_KEYS.LOADING_THEN_DATA ||
-      (Array.isArray(key) && key.includes(QUERY_KEYS.LOADING_THEN_DATA))
+      key === QUERY_KEYS.CACHE_AND_UPDATE ||
+      (Array.isArray(key) &&
+        (key.includes(QUERY_KEYS.LOADING_THEN_DATA) ||
+          key.includes(QUERY_KEYS.CACHE_AND_UPDATE)))
   );
 
   const startTime = Date.now();
@@ -54,7 +57,7 @@ export const fetchTodos = async (context?: {
     // For the loading-then-data tab, ensure loading state is shown for at least 3 seconds
     if (isDelayedTab) {
       const elapsed = Date.now() - startTime;
-      const remainingTime = Math.max(0, 3000 - elapsed);
+      const remainingTime = Math.max(0, LOADING_DELAY - elapsed);
       if (remainingTime > 0) {
         await new Promise((resolve) => setTimeout(resolve, remainingTime));
       }
@@ -119,7 +122,6 @@ const TodoList = ({ todos }: { todos: FetchTodosResponse['todos'] }) => {
 };
 
 export const DataFetchingDemo = () => {
-  const [forceRefresh, setForceRefresh] = useState(0);
   const [activeTab, setActiveTab] =
     useState<DataFetcherBehavior>('always-loading');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -152,25 +154,6 @@ export const DataFetchingDemo = () => {
       setRefreshKey((prev) => prev + 1);
     }
   }, [isLoading]);
-
-  // Create a memoized fetch function with delay for cache and update tab
-  const createFetchWithDelay = useCallback((baseFn: typeof fetchTodos) => {
-    return async (context?: { queryKey?: any[] }) => {
-      // Only add delay for cache-and-update tab
-      const isCacheAndUpdate =
-        context?.queryKey?.[0] === QUERY_KEYS.CACHE_AND_UPDATE;
-
-      if (isCacheAndUpdate) {
-        await new Promise((resolve) => setTimeout(resolve, LOADING_DELAY));
-      }
-      return baseFn(context);
-    };
-  }, []);
-
-  // Handle force refresh for other tabs
-  const handleForceRefresh = useCallback(() => {
-    setForceRefresh((prev) => prev + 1);
-  }, []);
 
   // Memoize the onFetchingChange callback to prevent infinite update loops
   const handleFetchingChange = useCallback((isFetching: boolean) => {
@@ -211,22 +194,11 @@ export const DataFetchingDemo = () => {
             description: TABS.LOADING_THEN_DATA.description
           },
           [TABS.CACHE_AND_UPDATE.value]: {
-            queryKey: [QUERY_KEYS.CACHE_AND_UPDATE, forceRefresh],
-            queryFn: createFetchWithDelay(fetchTodos),
+            queryKey: [QUERY_KEYS.CACHE_AND_UPDATE, refreshKey],
             behavior: TABS.CACHE_AND_UPDATE.value,
             showForceRefresh: true,
             title: TABS.CACHE_AND_UPDATE.title,
-            description: TABS.CACHE_AND_UPDATE.description,
-            refetchOnMount: true,
-            refetchOnWindowFocus: true,
-            onFetchingChange: (isFetching: boolean) => {
-              if (isFetching) {
-                setIsLoading(true);
-              } else {
-                setIsLoading(false);
-                setLastRefreshTime(Date.now());
-              }
-            }
+            description: TABS.CACHE_AND_UPDATE.description
           },
           [TABS.CACHE_ONLY.value]: {
             queryKey: QUERY_KEYS.CACHE_ONLY,
@@ -307,7 +279,8 @@ export const DataFetchingDemo = () => {
                           </CardDescription>
                         </div>
                         <div>
-                          {tabValue === TABS.LOADING_THEN_DATA.value ? (
+                          {tabValue === TABS.LOADING_THEN_DATA.value ||
+                          tabValue === TABS.CACHE_AND_UPDATE.value ? (
                             <Button
                               variant="outline"
                               size="sm"
@@ -326,9 +299,9 @@ export const DataFetchingDemo = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={handleForceRefresh}
+                              className="ml-2"
+                              onClick={() => setRefreshKey((prev) => prev + 1)}
                               disabled={isLoading}
-                              className="flex items-center gap-2"
                             >
                               <RefreshCw
                                 className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
