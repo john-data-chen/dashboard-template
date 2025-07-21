@@ -12,8 +12,7 @@ export const TABS = {
   ALWAYS_LOADING: {
     value: 'always-loading',
     title: 'Always Loading',
-    description:
-      'Shows loading state indefinitely using a never-resolving promise'
+    description: 'Shows loading state indefinitely'
   },
   LOADING_THEN_DATA: {
     value: 'loading-then-data',
