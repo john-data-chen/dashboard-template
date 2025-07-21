@@ -25,6 +25,7 @@ import {
   CACHE_MESSAGES,
   TODO_STATUS
 } from '../constants/dataFetcher';
+import { LOADING_DELAY } from '@/constants/dataFetcher';
 import { MOCK_API_URL } from '@/constants/mockApi';
 
 // Fetch todos from the mock API
@@ -145,12 +146,26 @@ export const DataFetchingDemo = () => {
   }, [activeTab]);
 
   // Handle manual refresh for loading-then-data tab
-  const handleManualRefresh = () => {
+  const handleManualRefresh = useCallback(() => {
     if (!isLoading) {
       setIsLoading(true);
       setRefreshKey((prev) => prev + 1);
     }
-  };
+  }, [isLoading]);
+
+  // Create a memoized fetch function with delay for cache and update tab
+  const createFetchWithDelay = useCallback((baseFn: typeof fetchTodos) => {
+    return async (context?: { queryKey?: any[] }) => {
+      // Only add delay for cache-and-update tab
+      const isCacheAndUpdate =
+        context?.queryKey?.[0] === QUERY_KEYS.CACHE_AND_UPDATE;
+
+      if (isCacheAndUpdate) {
+        await new Promise((resolve) => setTimeout(resolve, LOADING_DELAY));
+      }
+      return baseFn(context);
+    };
+  }, []);
 
   // Handle force refresh for other tabs
   const handleForceRefresh = useCallback(() => {
@@ -197,6 +212,7 @@ export const DataFetchingDemo = () => {
           },
           [TABS.CACHE_AND_UPDATE.value]: {
             queryKey: [QUERY_KEYS.CACHE_AND_UPDATE, forceRefresh],
+            queryFn: createFetchWithDelay(fetchTodos),
             behavior: TABS.CACHE_AND_UPDATE.value,
             showForceRefresh: true,
             title: TABS.CACHE_AND_UPDATE.title,

@@ -40,13 +40,7 @@ export function DataFetcher<TData, TError = Error>({
         }
       : isCacheOnly
         ? () => Promise.resolve(MOCK_CACHE_DATA as TData)
-        : isCacheAndUpdate
-          ? async () => {
-              // Then fetch fresh data after a delay
-              await new Promise((resolve) => setTimeout(resolve, 3000));
-              return queryFn();
-            }
-          : queryFn,
+        : queryFn,
     // For 'cache-only', disable all refetching
     refetchOnMount: isCacheOnly ? false : isCacheAndUpdate,
     refetchOnWindowFocus: !isCacheOnly,

@@ -65,8 +65,8 @@ export const BUTTON_LABELS = {
 // Default behavior
 export const DEFAULT_BEHAVIOR = 'loading-then-data' as const;
 
-// Network simulation
-export const MIN_LOADING_DELAY = 3000; // 3 seconds minimum loading time
+// Loading delay simulation
+export const LOADING_DELAY = 3000;
 
 // Mock Cache Data
 export const MOCK_CACHE_DATA = {
