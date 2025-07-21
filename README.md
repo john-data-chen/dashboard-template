@@ -55,3 +55,9 @@ src/
 └── index.tsx # Entry point
 mock-api.json # mock api by json-server
 ```
+
+### Improvements in Future
+
+- Refactor the code to make it more maintainable
+- Add unit tests by Vitest
+- CICD
