@@ -19,9 +19,23 @@ export function DataFetcher<TData, TError = Error>({
   const isLoadingIndefinitely = behavior === 'always-loading';
 
   const queryOptions = {
-    // For 'always-loading', use a never-resolving promise
+    // For 'always-loading', use a promise that can be cleaned up
     queryFn: isLoadingIndefinitely
-      ? (): Promise<never> => new Promise(() => {})
+      ? async ({ signal }: { signal?: AbortSignal } = {}): Promise<never> => {
+          return new Promise((_, reject) => {
+            if (signal?.aborted) {
+              reject(new DOMException('Aborted', 'AbortError'));
+              return;
+            }
+
+            const onAbort = () => {
+              signal?.removeEventListener('abort', onAbort);
+              reject(new DOMException('Aborted', 'AbortError'));
+            };
+
+            signal?.addEventListener('abort', onAbort, { once: true });
+          });
+        }
       : isCacheOnly
         ? () => Promise.resolve(MOCK_CACHE_DATA as TData)
         : isCacheAndUpdate
