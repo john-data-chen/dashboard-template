@@ -12,8 +12,7 @@ export const TABS = {
   ALWAYS_LOADING: {
     value: 'always-loading',
     title: 'Always Loading',
-    description:
-      'Shows loading state indefinitely using a never-resolving promise'
+    description: 'Shows loading state indefinitely'
   },
   LOADING_THEN_DATA: {
     value: 'loading-then-data',
@@ -23,7 +22,8 @@ export const TABS = {
   CACHE_AND_UPDATE: {
     value: 'cache-and-update',
     title: 'Cache + Update',
-    description: 'Shows cached data immediately, then updates in the background'
+    description:
+      'Shows cached data immediately, then updates data after queried'
   },
   CACHE_ONLY: {
     value: 'cache-only',
@@ -65,8 +65,8 @@ export const BUTTON_LABELS = {
 // Default behavior
 export const DEFAULT_BEHAVIOR = 'loading-then-data' as const;
 
-// Network simulation
-export const MIN_LOADING_DELAY = 3000; // 3 seconds minimum loading time
+// Loading delay simulation
+export const LOADING_DELAY = 3000;
 
 // Mock Cache Data
 export const MOCK_CACHE_DATA = {

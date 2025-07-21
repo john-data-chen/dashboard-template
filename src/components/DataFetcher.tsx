@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { DataFetcherProps } from '@/types/dataFetcher';
@@ -10,7 +11,8 @@ export function DataFetcher<TData, TError = Error>({
   renderSuccess,
   renderError,
   behavior = DEFAULT_BEHAVIOR,
-  initialData
+  initialData,
+  onFetchingChange
 }: DataFetcherProps<TData, TError>): ReturnType<
   DataFetcherProps<TData, TError>['renderLoading']
 > {
@@ -19,18 +21,26 @@ export function DataFetcher<TData, TError = Error>({
   const isLoadingIndefinitely = behavior === 'always-loading';
 
   const queryOptions = {
-    // For 'always-loading', use a never-resolving promise
+    // For 'always-loading', use a promise that can be cleaned up
     queryFn: isLoadingIndefinitely
-      ? (): Promise<never> => new Promise(() => {})
+      ? async ({ signal }: { signal?: AbortSignal } = {}): Promise<never> => {
+          return new Promise((_, reject) => {
+            if (signal?.aborted) {
+              reject(new DOMException('Aborted', 'AbortError'));
+              return;
+            }
+
+            const onAbort = () => {
+              signal?.removeEventListener('abort', onAbort);
+              reject(new DOMException('Aborted', 'AbortError'));
+            };
+
+            signal?.addEventListener('abort', onAbort, { once: true });
+          });
+        }
       : isCacheOnly
         ? () => Promise.resolve(MOCK_CACHE_DATA as TData)
-        : isCacheAndUpdate
-          ? async () => {
-              // Then fetch fresh data after a delay
-              await new Promise((resolve) => setTimeout(resolve, 3000));
-              return queryFn();
-            }
-          : queryFn,
+        : queryFn,
     // For 'cache-only', disable all refetching
     refetchOnMount: isCacheOnly ? false : isCacheAndUpdate,
     refetchOnWindowFocus: !isCacheOnly,
@@ -59,6 +69,11 @@ export function DataFetcher<TData, TError = Error>({
     queryKey: Array.isArray(queryKey) ? queryKey : [queryKey],
     ...queryOptions
   });
+
+  // Call onFetchingChange when fetching state changes
+  useEffect(() => {
+    onFetchingChange?.(isFetching);
+  }, [isFetching, onFetchingChange]);
 
   // Handle loading states
   if (isLoadingIndefinitely || (isLoading && !isCacheAndUpdate)) {

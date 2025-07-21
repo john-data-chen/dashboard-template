@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import {
   Card,
@@ -23,19 +23,23 @@ import {
   LOADING_STATE,
   ERROR_MESSAGES,
   CACHE_MESSAGES,
-  TODO_STATUS
-} from '../constants/dataFetcher';
+  TODO_STATUS,
+  LOADING_DELAY
+} from '@/constants/dataFetcher';
 import { MOCK_API_URL } from '@/constants/mockApi';
 
 // Fetch todos from the mock API
 export const fetchTodos = async (context?: {
   queryKey?: any[];
 }): Promise<FetchTodosResponse> => {
-  // Check if this is the loading-then-data tab by checking the query key
+  // Check if this is a tab that should show loading state first
   const isDelayedTab = context?.queryKey?.some(
     (key) =>
       key === QUERY_KEYS.LOADING_THEN_DATA ||
-      (Array.isArray(key) && key.includes(QUERY_KEYS.LOADING_THEN_DATA))
+      key === QUERY_KEYS.CACHE_AND_UPDATE ||
+      (Array.isArray(key) &&
+        (key.includes(QUERY_KEYS.LOADING_THEN_DATA) ||
+          key.includes(QUERY_KEYS.CACHE_AND_UPDATE)))
   );
 
   const startTime = Date.now();
@@ -53,7 +57,7 @@ export const fetchTodos = async (context?: {
     // For the loading-then-data tab, ensure loading state is shown for at least 3 seconds
     if (isDelayedTab) {
       const elapsed = Date.now() - startTime;
-      const remainingTime = Math.max(0, 3000 - elapsed);
+      const remainingTime = Math.max(0, LOADING_DELAY - elapsed);
       if (remainingTime > 0) {
         await new Promise((resolve) => setTimeout(resolve, remainingTime));
       }
@@ -118,11 +122,23 @@ const TodoList = ({ todos }: { todos: FetchTodosResponse['todos'] }) => {
 };
 
 export const DataFetchingDemo = () => {
-  const [forceRefresh, setForceRefresh] = useState(0);
   const [activeTab, setActiveTab] =
     useState<DataFetcherBehavior>('always-loading');
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<number | null>(null);
+
+  // Reset loading state when tab changes or when data is loaded
+  useEffect(() => {
+    setIsLoading(false);
+  }, [activeTab, lastRefreshTime]);
+
+  // Effect to handle loading state updates
+  useEffect(() => {
+    if (isLoading) {
+      setLastRefreshTime(Date.now());
+    }
+  }, [isLoading]);
 
   // Auto-refresh when switching to the loading-then-data tab
   useEffect(() => {
@@ -131,8 +147,21 @@ export const DataFetchingDemo = () => {
     }
   }, [activeTab]);
 
-  // Track the currently refreshing tab
-  const [refreshingTab, setRefreshingTab] = useState<string | null>(null);
+  // Handle manual refresh for loading-then-data tab
+  const handleManualRefresh = useCallback(() => {
+    if (!isLoading) {
+      setIsLoading(true);
+      setRefreshKey((prev) => prev + 1);
+    }
+  }, [isLoading]);
+
+  // Memoize the onFetchingChange callback to prevent infinite update loops
+  const handleFetchingChange = useCallback((isFetching: boolean) => {
+    setIsLoading(isFetching);
+    if (!isFetching) {
+      setLastRefreshTime(Date.now());
+    }
+  }, []);
 
   return (
     <div className="w-full">
@@ -152,119 +181,154 @@ export const DataFetchingDemo = () => {
         {Object.entries({
           [TABS.ALWAYS_LOADING.value]: {
             queryKey: QUERY_KEYS.ALWAYS_LOADING,
-            behavior: 'always-loading' as const,
+            behavior: TABS.ALWAYS_LOADING.value,
             showForceRefresh: false,
             title: TABS.ALWAYS_LOADING.title,
             description: TABS.ALWAYS_LOADING.description
           },
           [TABS.LOADING_THEN_DATA.value]: {
             queryKey: [QUERY_KEYS.LOADING_THEN_DATA, refreshKey],
-            behavior: 'loading-then-data' as const,
+            behavior: TABS.LOADING_THEN_DATA.value,
             showForceRefresh: true,
             title: TABS.LOADING_THEN_DATA.title,
             description: TABS.LOADING_THEN_DATA.description
           },
           [TABS.CACHE_AND_UPDATE.value]: {
-            queryKey: [QUERY_KEYS.CACHE_AND_UPDATE, forceRefresh],
-            behavior: 'cache-and-update' as const,
+            queryKey: [QUERY_KEYS.CACHE_AND_UPDATE, refreshKey],
+            behavior: TABS.CACHE_AND_UPDATE.value,
             showForceRefresh: true,
             title: TABS.CACHE_AND_UPDATE.title,
             description: TABS.CACHE_AND_UPDATE.description
           },
           [TABS.CACHE_ONLY.value]: {
             queryKey: QUERY_KEYS.CACHE_ONLY,
-            behavior: 'cache-only' as const,
+            behavior: TABS.CACHE_ONLY.value,
             showForceRefresh: false,
             title: TABS.CACHE_ONLY.title,
             description: TABS.CACHE_ONLY.description,
             initialData: MOCK_CACHE_DATA
           }
-        }).map(([tabValue, config]) => (
-          <TabsContent key={tabValue} value={tabValue}>
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>{config.title}</CardTitle>
-                    <CardDescription>{config.description}</CardDescription>
-                  </div>
-                  <div>
-                    {tabValue === TABS.LOADING_THEN_DATA.value && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setIsLoading(true);
-                          setRefreshKey((prev) => prev + 1);
-                        }}
-                        disabled={isLoading}
-                        className="flex items-center gap-2"
-                      >
-                        <RefreshCw
-                          className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
-                        />
-                        {isLoading
-                          ? BUTTON_LABELS.MANUAL_REFRESHING
-                          : BUTTON_LABELS.MANUAL_REFRESH}
-                      </Button>
-                    )}
-                    {config.showForceRefresh &&
-                      tabValue !== TABS.LOADING_THEN_DATA.value && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setRefreshingTab(tabValue);
-                            setForceRefresh((prev) => prev + 1);
-                          }}
-                          disabled={refreshingTab === tabValue}
-                        >
-                          <RefreshCw
-                            className={`mr-2 h-4 w-4 ${refreshingTab === tabValue ? 'animate-spin' : ''}`}
-                          />
-                          {refreshingTab === tabValue
-                            ? BUTTON_LABELS.MANUAL_REFRESHING
-                            : BUTTON_LABELS.FORCE_REFRESH}
-                        </Button>
+        }).map(([tabValue, config]) => {
+          const isCacheOnly = tabValue === TABS.CACHE_ONLY.value;
+          return (
+            <TabsContent key={tabValue} value={tabValue}>
+              <DataFetcher
+                key={`${tabValue}-${refreshKey}`}
+                queryKey={config.queryKey}
+                queryFn={fetchTodos}
+                behavior={config.behavior as DataFetcherBehavior}
+                initialData={isCacheOnly ? MOCK_CACHE_DATA : undefined}
+                renderLoading={() => (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>{config.title}</CardTitle>
+                          <CardDescription>
+                            {config.description}
+                          </CardDescription>
+                        </div>
+                        {tabValue === TABS.LOADING_THEN_DATA.value && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={true}
+                            className="flex items-center gap-2"
+                          >
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            {BUTTON_LABELS.MANUAL_REFRESHING}
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {isCacheOnly ? (
+                        <div>{ERROR_MESSAGES.NO_CACHED_DATA}</div>
+                      ) : (
+                        <LoadingState />
                       )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <DataFetcher
-                  queryKey={config.queryKey}
-                  queryFn={fetchTodos}
-                  behavior={config.behavior}
-                  renderLoading={
-                    tabValue === TABS.CACHE_ONLY.value
-                      ? () => <div>{ERROR_MESSAGES.NO_CACHED_DATA}</div>
-                      : LoadingState
-                  }
-                  renderSuccess={(data) => {
-                    // Reset refreshing state when data is loaded
-                    if (refreshingTab === tabValue) {
-                      setRefreshingTab(null);
-                    }
-                    return <TodoList todos={data.todos} />;
-                  }}
-                  renderError={(error) => {
-                    // Reset refreshing state on error
-                    if (refreshingTab === tabValue) {
-                      setRefreshingTab(null);
-                    }
-                    return <ErrorState error={error} />;
-                  }}
-                />
-                {tabValue === TABS.CACHE_ONLY.value && (
-                  <div className="mt-4 text-sm text-muted-foreground">
-                    <p>{CACHE_MESSAGES.CACHE_ONLY_NOTE}</p>
-                    <p>{CACHE_MESSAGES.CACHE_ONLY_INSTRUCTION}</p>
-                  </div>
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
+                renderError={(error) => (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>{config.title}</CardTitle>
+                          <CardDescription>
+                            {config.description}
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ErrorState error={error} />
+                    </CardContent>
+                  </Card>
+                )}
+                onFetchingChange={handleFetchingChange}
+                renderSuccess={(data) => (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>{config.title}</CardTitle>
+                          <CardDescription>
+                            {config.description}
+                          </CardDescription>
+                        </div>
+                        <div>
+                          {tabValue === TABS.LOADING_THEN_DATA.value ||
+                          tabValue === TABS.CACHE_AND_UPDATE.value ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleManualRefresh}
+                              disabled={isLoading}
+                              className="flex items-center gap-2"
+                            >
+                              <RefreshCw
+                                className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+                              />
+                              {isLoading
+                                ? BUTTON_LABELS.MANUAL_REFRESHING
+                                : BUTTON_LABELS.MANUAL_REFRESH}
+                            </Button>
+                          ) : config.showForceRefresh ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="ml-2"
+                              onClick={() => setRefreshKey((prev) => prev + 1)}
+                              disabled={isLoading}
+                            >
+                              <RefreshCw
+                                className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+                              />
+                              {isLoading
+                                ? BUTTON_LABELS.MANUAL_REFRESHING
+                                : BUTTON_LABELS.FORCE_REFRESH}
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <TodoList todos={data.todos} />
+                      {isCacheOnly && (
+                        <div className="mt-4 text-sm text-muted-foreground">
+                          <p>{CACHE_MESSAGES.CACHE_ONLY_NOTE}</p>
+                          <p>{CACHE_MESSAGES.CACHE_ONLY_INSTRUCTION}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              />
+            </TabsContent>
+          );
+        })}
       </Tabs>
     </div>
   );

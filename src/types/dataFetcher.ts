@@ -28,4 +28,5 @@ export type DataFetcherProps<TData, TError = Error> = {
   renderError: (error: TError) => ReactNode;
   behavior?: DataFetcherBehavior;
   initialData?: TData;
+  onFetchingChange?: (isFetching: boolean) => void;
 };
